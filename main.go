@@ -27,11 +27,9 @@ func main() {
 
 	r := gin.Default()
 
-	coursesRoute := r.Group("/courses")
-	//lessonsRoute := r.Group("/lessons")
-	//usersRoute := r.Group("/users")
-
-	routes.SetUpCourses(coursesRoute, db)
+	routes.SetUpCourses(r.Group("/courses"), db)
+	//lessons := r.Group("/lessons")
+	//users := r.Group("/users")
 
 	err = r.Run()
 	if err != nil {
