@@ -27,9 +27,16 @@ func main() {
 
 	r := gin.Default()
 
-	routes.SetUpCourses(r.Group("/courses"), db)
-	//lessons := r.Group("/lessons")
-	//users := r.Group("/users")
+	authMiddleware := createBasicAuthMiddleware(db)
+	courses := r.Group("/courses", authMiddleware)
+	_ = r.Group("/lessons", authMiddleware)
+	_ = r.Group("/users", authMiddleware)
+
+	r.POST("/register", registretionHandler(db))
+
+	routes.SetUpCourses(courses, db)
+	//routes.SetUpLessons(lessons, db)
+	//routes.SetUpUsers(users, db)
 
 	err = r.Run()
 	if err != nil {
