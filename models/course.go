@@ -28,24 +28,24 @@ type ModelCourse struct {
 }
 
 type ICourseLister interface {
-	GetList(limit int, offset int) []Course
+	GetList(limit, offset int) []Course
 }
 
 type ICourseGetter interface {
-	Get(id int) Course
+	Get(id int64) Course
 }
 
 type ICourseCreator interface {
-	Create(input CourseCreateInput) int
+	Create(in CourseCreateInput) int64
 	ICourseGetter
 }
 
 type ICourseDeleter interface {
-	Delete(id int)
+	Delete(id int64)
 }
 
 type ICourseUpdater interface {
-	Update(updatedCourse Course)
+	Update(in Course)
 	ICourseGetter
 }
 
@@ -53,7 +53,7 @@ func NewCourseModel(db *sql.DB) ModelCourse {
 	return ModelCourse{model{db}}
 }
 
-func (m ModelCourse) GetList(limit int, offset int) []Course {
+func (m ModelCourse) GetList(limit, offset int) []Course {
 	courses := make([]Course, 0)
 
 	rows, err := m.db.Query(`SELECT * FROM courses LIMIT ? OFFSET ?`, limit, offset)
@@ -81,7 +81,7 @@ func (m ModelCourse) GetList(limit int, offset int) []Course {
 	return courses
 }
 
-func (m ModelCourse) Get(id int) Course {
+func (m ModelCourse) Get(id int64) Course {
 	course := Course{}
 
 	row := m.db.QueryRow(`SELECT id, title, description, ava, owner_id FROM courses WHERE id = ?`, id)
@@ -93,7 +93,7 @@ func (m ModelCourse) Get(id int) Course {
 	return course
 }
 
-func (m ModelCourse) Create(in CourseCreateInput) int {
+func (m ModelCourse) Create(in CourseCreateInput) int64 {
 	stmt, err := m.db.Prepare(`INSERT INTO courses(title, description, ava, owner_id) VALUE(?, ?, ?, ?)`)
 	if err != nil {
 		return 0
@@ -109,10 +109,10 @@ func (m ModelCourse) Create(in CourseCreateInput) int {
 		return 0
 	}
 
-	return int(lastID)
+	return lastID
 }
 
-func (m ModelCourse) Delete(id int) {
+func (m ModelCourse) Delete(id int64) {
 	_, err := m.db.Exec(`DELETE FROM courses WHERE id = ?`, id)
 	if err != nil {
 		return
