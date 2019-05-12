@@ -8,15 +8,19 @@ import (
 	"strconv"
 )
 
-func listCourses(model models.ICourseLister) gin.HandlerFunc {
+func listLessons(model models.ILessonLister) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		courseID, err := strconv.ParseInt(c.Query("id"), 10, 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		}
 
-		list := model.GetList(limit, offset)
+		list := model.GetList(courseID, limit, offset)
 
 		c.JSON(http.StatusOK, gin.H{
-			"courses": list,
+			"lessons": list,
 			"meta": gin.H{
 				"limit":  limit,
 				"offset": offset,
@@ -25,25 +29,26 @@ func listCourses(model models.ICourseLister) gin.HandlerFunc {
 	}
 }
 
-func createCourse(model models.ICourseCreator) gin.HandlerFunc {
+func createLesson(model models.ILessonCreator) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		inputData := models.CourseCreateInput{}
+		inputData := models.LessonCreateInput{}
 		err := c.ShouldBindJSON(&inputData)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		}
 
-		id := model.Create(inputData)
-		course := model.Get(id)
+		// TODO: check if course exits
 
-		c.JSON(http.StatusCreated, course)
+		id := model.Create(inputData)
+		lesson := model.Get(id)
+
+		c.JSON(http.StatusCreated, lesson)
 	}
 }
 
-func getCourse(model models.ICourseGetter) gin.HandlerFunc {
+func getLesson(model models.ILessonGetter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		}
@@ -55,28 +60,28 @@ func getCourse(model models.ICourseGetter) gin.HandlerFunc {
 	}
 }
 
-func updateCourse(model models.ICourseUpdater) gin.HandlerFunc {
+func updateLesson(model models.ILessonUpdater) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		}
 
-		course := model.Get(id)
+		lesson := model.Get(id)
 		// TODO: check if exists
 
-		err = c.ShouldBindJSON(&course)
+		err = c.ShouldBindJSON(&lesson)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		}
 
-		model.Update(course)
+		model.Update(lesson)
 
 		c.JSON(http.StatusOK, model.Get(id))
 	}
 }
 
-func deleteCourse(model models.ICourseDeleter) gin.HandlerFunc {
+func deleteLesson(model models.ILessonDeleter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -90,12 +95,12 @@ func deleteCourse(model models.ICourseDeleter) gin.HandlerFunc {
 	}
 }
 
-func SetUpCourses(group *gin.RouterGroup, db *sql.DB) {
-	m := models.NewCourseModel(db)
+func SetUpLessons(group *gin.RouterGroup, db *sql.DB) {
+	m := models.NewLessonModel(db)
 
-	group.GET("/", listCourses(m))
-	group.POST("/", createCourse(m))
-	group.GET("/:id", getCourse(m))
-	group.DELETE("/:id", deleteCourse(m))
-	group.PUT("/:id", updateCourse(m))
+	group.GET("/", listLessons(m))
+	group.POST("/", createLesson(m))
+	group.GET("/:id", getLesson(m))
+	group.PUT("/:id", updateLesson(m))
+	group.DELETE("/:id", deleteLesson(m))
 }
