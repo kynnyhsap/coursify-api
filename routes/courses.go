@@ -12,6 +12,7 @@ func listCourses(model models.ICourseLister) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		//userID, _ := strconv.Atoi(c.DefaultQuery("userId", "0"))
 
 		list := model.GetList(limit, offset)
 

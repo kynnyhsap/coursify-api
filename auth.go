@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -43,15 +44,13 @@ func searchCredential(authValue string, db *sql.DB) (string, bool) {
 
 	result := db.QueryRow(`SELECT password_hash FROM users WHERE email = ?`, login)
 
-	passwordHash := ""
-	err := result.Scan(&passwordHash)
+	storedPasswordHash := ""
+	err := result.Scan(&storedPasswordHash)
 	if err != nil {
 		return "", false
 	}
 
-	// TODO: better check
-
-	if err = bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
+	if password != storedPasswordHash {
 		return "", false
 	}
 
@@ -61,6 +60,8 @@ func searchCredential(authValue string, db *sql.DB) (string, bool) {
 // createBasicAuthMiddleware returns a Basic HTTP Authorization middleware.
 func createBasicAuthMiddleware(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log.Println(c.Request.Header.Get("Authorization"))
+
 		user, found := searchCredential(c.Request.Header.Get("Authorization"), db)
 		if !found {
 			// Credentials doesn't match, we return 401 and abort handlers chain.
