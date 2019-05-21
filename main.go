@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -53,6 +54,9 @@ func main() {
 	usersGroup.GET("/self", routes.GetSelf(userModel))
 
 	r.POST("/register", routes.RegisterUser(userModel))
+
+	r.POST("/fs/images", authMiddleware, routes.PostImageFile("file_storage"))
+	r.StaticFS("/fs/images/", http.Dir("file_storage/images"))
 
 	err = r.Run()
 	if err != nil {
