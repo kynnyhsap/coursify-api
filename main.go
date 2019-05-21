@@ -1,6 +1,7 @@
 package main
 
 import (
+	"coursify-api/models"
 	"coursify-api/routes"
 	"database/sql"
 	"github.com/gin-gonic/gin"
@@ -28,15 +29,30 @@ func main() {
 	r := gin.Default()
 
 	authMiddleware := createBasicAuthMiddleware(db)
-	courses := r.Group("/courses", authMiddleware)
-	lessons := r.Group("/lessons", authMiddleware)
-	_ = r.Group("/users", authMiddleware)
 
-	r.POST("/register", registretionHandler(db))
+	userModel := models.NewUserModel(db)
+	courseModel := models.NewCourseModel(db)
+	lessonModel := models.NewLessonModel(db)
 
-	routes.SetUpCourses(courses, db)
-	routes.SetUpLessons(lessons, db)
-	//routes.SetUpUsers(users, db)
+	coursesGroup := r.Group("/courses", authMiddleware)
+	lessonsGroup := r.Group("/lessons", authMiddleware)
+	usersGroup := r.Group("/users", authMiddleware)
+
+	lessonsGroup.GET("/", routes.ListLessons(lessonModel))
+	lessonsGroup.POST("/", routes.CreateLesson(lessonModel))
+	lessonsGroup.GET("/:id", routes.GetLesson(lessonModel))
+	lessonsGroup.PUT("/:id", routes.UpdateLesson(lessonModel))
+	lessonsGroup.DELETE("/:id", routes.DeleteLesson(lessonModel))
+
+	coursesGroup.GET("/", routes.ListCourses(courseModel))
+	coursesGroup.POST("/", routes.CreateCourse(courseModel))
+	coursesGroup.GET("/:id", routes.GetCourse(courseModel))
+	coursesGroup.DELETE("/:id", routes.DeleteCourse(courseModel))
+	coursesGroup.PUT("/:id", routes.UpdateCourse(courseModel))
+
+	usersGroup.GET("/self", routes.GetSelf(userModel))
+
+	r.POST("/register", routes.RegisterUser(userModel))
 
 	err = r.Run()
 	if err != nil {

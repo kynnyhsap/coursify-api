@@ -2,14 +2,13 @@ package routes
 
 import (
 	"coursify-api/models"
-	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-func listLessons(model models.ILessonLister) gin.HandlerFunc {
+func ListLessons(model models.ILessonLister) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -30,7 +29,7 @@ func listLessons(model models.ILessonLister) gin.HandlerFunc {
 	}
 }
 
-func createLesson(model models.ILessonCreator) gin.HandlerFunc {
+func CreateLesson(model models.ILessonCreator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		inputData := models.LessonCreateInput{}
 		err := c.ShouldBindJSON(&inputData)
@@ -50,7 +49,7 @@ func createLesson(model models.ILessonCreator) gin.HandlerFunc {
 	}
 }
 
-func getLesson(model models.ILessonGetter) gin.HandlerFunc {
+func GetLesson(model models.ILessonGetter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -64,7 +63,7 @@ func getLesson(model models.ILessonGetter) gin.HandlerFunc {
 	}
 }
 
-func updateLesson(model models.ILessonUpdater) gin.HandlerFunc {
+func UpdateLesson(model models.ILessonUpdater) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -85,7 +84,7 @@ func updateLesson(model models.ILessonUpdater) gin.HandlerFunc {
 	}
 }
 
-func deleteLesson(model models.ILessonDeleter) gin.HandlerFunc {
+func DeleteLesson(model models.ILessonDeleter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -97,14 +96,4 @@ func deleteLesson(model models.ILessonDeleter) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{})
 	}
-}
-
-func SetUpLessons(group *gin.RouterGroup, db *sql.DB) {
-	m := models.NewLessonModel(db)
-
-	group.GET("/", listLessons(m))
-	group.POST("/", createLesson(m))
-	group.GET("/:id", getLesson(m))
-	group.PUT("/:id", updateLesson(m))
-	group.DELETE("/:id", deleteLesson(m))
 }

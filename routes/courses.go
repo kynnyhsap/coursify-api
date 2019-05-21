@@ -2,13 +2,12 @@ package routes
 
 import (
 	"coursify-api/models"
-	"database/sql"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
 
-func listCourses(model models.ICourseLister) gin.HandlerFunc {
+func ListCourses(model models.ICourseLister) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
@@ -26,7 +25,7 @@ func listCourses(model models.ICourseLister) gin.HandlerFunc {
 	}
 }
 
-func createCourse(model models.ICourseCreator) gin.HandlerFunc {
+func CreateCourse(model models.ICourseCreator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		inputData := models.CourseCreateInput{}
 		err := c.ShouldBindJSON(&inputData)
@@ -41,7 +40,7 @@ func createCourse(model models.ICourseCreator) gin.HandlerFunc {
 	}
 }
 
-func getCourse(model models.ICourseGetter) gin.HandlerFunc {
+func GetCourse(model models.ICourseGetter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 
@@ -56,7 +55,7 @@ func getCourse(model models.ICourseGetter) gin.HandlerFunc {
 	}
 }
 
-func updateCourse(model models.ICourseUpdater) gin.HandlerFunc {
+func UpdateCourse(model models.ICourseUpdater) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -77,7 +76,7 @@ func updateCourse(model models.ICourseUpdater) gin.HandlerFunc {
 	}
 }
 
-func deleteCourse(model models.ICourseDeleter) gin.HandlerFunc {
+func DeleteCourse(model models.ICourseDeleter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
@@ -89,14 +88,4 @@ func deleteCourse(model models.ICourseDeleter) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{})
 	}
-}
-
-func SetUpCourses(group *gin.RouterGroup, db *sql.DB) {
-	m := models.NewCourseModel(db)
-
-	group.GET("/", listCourses(m))
-	group.POST("/", createCourse(m))
-	group.GET("/:id", getCourse(m))
-	group.DELETE("/:id", deleteCourse(m))
-	group.PUT("/:id", updateCourse(m))
 }
