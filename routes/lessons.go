@@ -3,6 +3,7 @@ package routes
 import (
 	"coursify-api/models"
 	"database/sql"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -12,7 +13,7 @@ func listLessons(model models.ILessonLister) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-		courseID, err := strconv.ParseInt(c.Query("id"), 10, 64)
+		courseID, err := strconv.ParseInt(c.Query("courseId"), 10, 64)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		}
@@ -35,9 +36,12 @@ func createLesson(model models.ILessonCreator) gin.HandlerFunc {
 		err := c.ShouldBindJSON(&inputData)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
+			return
 		}
 
 		// TODO: check if course exits
+
+		fmt.Println(inputData)
 
 		id := model.Create(inputData)
 		lesson := model.Get(id)
