@@ -21,6 +21,12 @@ func RegisterUser(model models.IUserCreator) gin.HandlerFunc {
 	}
 }
 
+func LogInUser(model models.IUserCreator) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.String(http.StatusOK, "")
+	}
+}
+
 func GetSelf(model models.IUserGetter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		any, _ := c.Get(gin.AuthUserKey)

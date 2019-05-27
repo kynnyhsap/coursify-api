@@ -50,6 +50,10 @@ func GetCourse(model models.ICourseGetter) gin.HandlerFunc {
 
 		course := model.Get(id)
 		// TODO: check if exists
+		if course.ID == 0 {
+			c.String(http.StatusNotFound, "No course with id %d", id)
+			return
+		}
 
 		c.JSON(http.StatusOK, course)
 	}
@@ -63,6 +67,7 @@ func UpdateCourse(model models.ICourseUpdater) gin.HandlerFunc {
 		}
 
 		course := model.Get(id)
+
 		// TODO: check if exists
 
 		err = c.ShouldBindJSON(&course)

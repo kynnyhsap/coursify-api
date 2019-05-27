@@ -30,7 +30,12 @@ func searchCredential(authValue string, db *sql.DB) (int64, bool) {
 	name := pair[0]
 	password := pair[1]
 
-	result := db.QueryRow(`SELECT password_hash, id FROM users WHERE name = ?`, name)
+	result := db.QueryRow(`
+		SELECT
+		    password_hash,
+		    id
+		FROM users WHERE user_name = ?
+	`, name)
 
 	var id int64
 	var storedPasswordHash string

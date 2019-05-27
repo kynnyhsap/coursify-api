@@ -35,7 +35,8 @@ func main() {
 	courseModel := models.NewCourseModel(db)
 	lessonModel := models.NewLessonModel(db)
 
-	coursesGroup := r.Group("/courses", authMiddleware)
+	coursesGroup := r.Group("/courses")
+	//coursesGroup := r.Group("/courses", authMiddleware)
 	lessonsGroup := r.Group("/lessons", authMiddleware)
 	usersGroup := r.Group("/users", authMiddleware)
 
@@ -53,9 +54,10 @@ func main() {
 
 	usersGroup.GET("/self", routes.GetSelf(userModel))
 
-	r.POST("/register", routes.RegisterUser(userModel))
+	r.POST("/register/", routes.RegisterUser(userModel))
+	r.GET("/login/", authMiddleware, routes.LogInUser(userModel))
 
-	r.POST("/fs/images", authMiddleware, routes.PostImageFile("file_storage"))
+	r.POST("/fs/images/", routes.PostImageFile("file_storage"))
 	r.StaticFS("/fs/images/", http.Dir("file_storage/images"))
 
 	err = r.Run()

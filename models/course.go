@@ -84,7 +84,7 @@ func (m ModelCourse) GetList(limit, offset int) []Course {
 func (m ModelCourse) Get(id int64) Course {
 	course := Course{}
 
-	row := m.db.QueryRow(`SELECT id, title, description, ava, owner_id FROM courses WHERE id = ?`, id)
+	row := m.db.QueryRow(`SELECT id, title, description, avatar, owner_id FROM courses WHERE id = ?`, id)
 	err := row.Scan(&course.ID, &course.Title, &course.Description, &course.Avatar, &course.OwnerID)
 	if err != nil {
 		return Course{}
@@ -94,7 +94,7 @@ func (m ModelCourse) Get(id int64) Course {
 }
 
 func (m ModelCourse) Create(in CourseCreateInput) int64 {
-	stmt, err := m.db.Prepare(`INSERT INTO courses(title, description, ava, owner_id) VALUE(?, ?, ?, ?)`)
+	stmt, err := m.db.Prepare(`INSERT INTO courses(title, description, avatar, owner_id) VALUE(?, ?, ?, ?)`)
 	if err != nil {
 		return 0
 	}

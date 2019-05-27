@@ -1,21 +1,26 @@
 package models
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 type User struct {
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
+	ID          int       `json:"id"`
+	Name        string    `json:"user_name"`
+	FullName    string    `json:"full_name"`
+	Avatar      string    `json:"avatar"`
+	DateCreated time.Time `json:"date_created"`
 }
 
 type Credentials struct {
-	Name         string `json:"name"`
+	Name         string `json:"user_name"`
 	PasswordHash string `json:"password_hash"`
 }
 
 type UserCreateInput struct {
-	Avatar string `json:"avatar"`
-
+	Avatar   string `json:"avatar"`
+	FullName string `json:"full_name"`
 	Credentials
 }
 
@@ -25,7 +30,6 @@ type ModelUser struct {
 
 type IUserGetter interface {
 	Get(id int64) User
-	GetByLogin(login string) User
 }
 
 type IUserCreator interface {
@@ -36,20 +40,23 @@ type IUserCreator interface {
 func (m ModelUser) Get(id int64) User {
 	user := User{}
 
-	row := m.db.QueryRow(`SELECT id, name, avatar FROM users WHERE id = ?`, id)
-	err := row.Scan(&user.ID, &user.Name, &user.Avatar)
-	if err != nil {
-		return User{}
-	}
+	row := m.db.QueryRow(`
+		SELECT
+			id,
+			user_name,
+		    full_name,
+		    avatar,
+		    date_created
+		FROM users WHERE id = ?
+	`, id)
 
-	return user
-}
+	err := row.Scan(
+		&user.ID,
+		&user.Name,
+		&user.FullName,
+		&user.Avatar,
+		&user.DateCreated)
 
-func (m ModelUser) GetByLogin(login string) User {
-	user := User{}
-
-	row := m.db.QueryRow(`SELECT id, name, avatar FROM users WHERE name = ?`, login)
-	err := row.Scan(&user.ID, &user.Name, &user.Avatar)
 	if err != nil {
 		return User{}
 	}
@@ -58,12 +65,21 @@ func (m ModelUser) GetByLogin(login string) User {
 }
 
 func (m ModelUser) Create(in UserCreateInput) int64 {
-	stmt, err := m.db.Prepare(`INSERT INTO users(name, avatar, password_hash) VALUE(?, ?, ?)`)
+	stmt, err := m.db.Prepare(`
+		INSERT INTO users (
+			full_name,
+			user_name,
+			avatar,
+			password_hash,
+			date_created
+		) VALUE (?, ?, ?, ?, NOW())
+	`)
+
 	if err != nil {
 		return 0
 	}
 
-	res, err := stmt.Exec(in.Name, in.Avatar, in.PasswordHash)
+	res, err := stmt.Exec(in.FullName, in.Name, in.Avatar, in.PasswordHash)
 	if err != nil {
 		return 0
 	}
