@@ -8,7 +8,7 @@ type Course struct {
 	ID          int    `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
-	Avatar      []byte `json:"avatar"`
+	Avatar      string `json:"avatar"`
 	OwnerID     int    `json:"owner_id"`
 }
 
@@ -28,7 +28,7 @@ type ModelCourse struct {
 }
 
 type ICourseLister interface {
-	GetList(limit, offset int) []Course
+	GetList(limit, offset int, search string) []Course
 }
 
 type ICourseGetter interface {
@@ -53,10 +53,10 @@ func NewCourseModel(db *sql.DB) ModelCourse {
 	return ModelCourse{model{db}}
 }
 
-func (m ModelCourse) GetList(limit, offset int) []Course {
+func (m ModelCourse) GetList(limit, offset int, search string) []Course {
 	courses := make([]Course, 0)
 
-	rows, err := m.db.Query(`SELECT * FROM courses LIMIT ? OFFSET ?`, limit, offset)
+	rows, err := m.db.Query(`SELECT * FROM courses WHERE title LIKE ? LIMIT ? OFFSET ?`, "%"+search+"%", limit, offset)
 	if err != nil {
 		return courses
 	}
@@ -65,7 +65,7 @@ func (m ModelCourse) GetList(limit, offset int) []Course {
 	for rows.Next() {
 		var course Course
 
-		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.Avatar, &course.OwnerID)
+		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.OwnerID, &course.Avatar)
 		if err != nil {
 			//
 			return courses
@@ -124,7 +124,7 @@ func (m ModelCourse) Update(in Course) {
 		UPDATE courses SET
 			title = ?,
 			description  = ?,
-		    ava = ?,
+		    avatar = ?,
 		    owner_id = ?
 		WHERE id = ?`)
 	if err != nil {

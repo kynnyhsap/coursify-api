@@ -52,7 +52,7 @@ func main() {
 	coursesGroup.DELETE("/:id", routes.DeleteCourse(courseModel))
 	coursesGroup.PUT("/:id", routes.UpdateCourse(courseModel))
 
-	usersGroup.GET("/self", routes.GetSelf(userModel))
+	usersGroup.GET("/self/", routes.GetSelf(userModel))
 
 	r.POST("/register/", routes.RegisterUser(userModel))
 	r.GET("/login/", authMiddleware, routes.LogInUser(userModel))

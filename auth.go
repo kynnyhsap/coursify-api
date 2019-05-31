@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"strings"
 )
@@ -55,7 +54,7 @@ func searchCredential(authValue string, db *sql.DB) (int64, bool) {
 // createBasicAuthMiddleware returns a Basic HTTP Authorization middleware.
 func createBasicAuthMiddleware(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		log.Println(c.Request.Header.Get("Authorization"))
+		//log.Println(c.Request.Header.Get("Authorization"))
 
 		userID, found := searchCredential(c.Request.Header.Get("Authorization"), db)
 		if !found {
