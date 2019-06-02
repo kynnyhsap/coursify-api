@@ -29,6 +29,7 @@ type ModelCourse struct {
 
 type ICourseLister interface {
 	GetList(limit, offset int, search string) []Course
+	GetListForUser(limit, offset int, userID int64, admin bool) []Course
 }
 
 type ICourseGetter interface {
@@ -68,6 +69,55 @@ func (m ModelCourse) GetList(limit, offset int, search string) []Course {
 		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.OwnerID, &course.Avatar)
 		if err != nil {
 			//
+			return courses
+		}
+
+		courses = append(courses, course)
+	}
+
+	if err = rows.Err(); err != nil {
+		// log error
+	}
+
+	return courses
+}
+
+func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool) []Course {
+	courses := make([]Course, 0)
+
+	var rows *sql.Rows
+	var err error
+
+	if admin {
+		rows, err = m.db.Query(`
+			SELECT
+				id, title, description, owner_id, avatar
+			FROM courses c
+			WHERE c.owner_id = ?
+			LIMIT ? OFFSET ?
+		`, userID, limit, offset)
+	} else {
+		rows, err = m.db.Query(`
+			SELECT
+				id, title, description, owner_id, avatar
+			FROM courses c
+				JOIN students s ON c.id = s.course_id
+			WHERE s.user_id = ?
+			LIMIT ? OFFSET ?
+		`, userID, limit, offset)
+	}
+
+	if err != nil {
+		return courses
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var course Course
+
+		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.OwnerID, &course.Avatar)
+		if err != nil {
 			return courses
 		}
 

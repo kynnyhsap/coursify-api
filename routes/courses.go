@@ -8,15 +8,30 @@ import (
 	"strconv"
 )
 
+const (
+	allCourses   = "all"
+	myCourses    = "my"
+	adminCourses = "admin"
+)
+
 func ListCourses(model models.ICourseLister) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
-		searchQuery := c.DefaultQuery("search", "")
-		decodedSearchQuery, _ := url.QueryUnescape(searchQuery)
-		//userID, _ := strconv.Atoi(c.DefaultQuery("userId", "0"))
+		listType := c.DefaultQuery("type", allCourses)
 
-		list := model.GetList(limit, offset, decodedSearchQuery)
+		var list []models.Course
+		if listType == allCourses {
+			searchQuery := c.DefaultQuery("search", "")
+			decodedSearchQuery, _ := url.QueryUnescape(searchQuery)
+
+			list = model.GetList(limit, offset, decodedSearchQuery)
+		} else {
+			any, _ := c.Get(gin.AuthUserKey)
+			selfID, _ := any.(int64)
+
+			list = model.GetListForUser(limit, offset, selfID, listType == adminCourses)
+		}
 
 		c.JSON(http.StatusOK, gin.H{
 			"courses": list,

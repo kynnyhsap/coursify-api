@@ -35,8 +35,7 @@ func main() {
 	courseModel := models.NewCourseModel(db)
 	lessonModel := models.NewLessonModel(db)
 
-	coursesGroup := r.Group("/courses")
-	//coursesGroup := r.Group("/courses", authMiddleware)
+	coursesGroup := r.Group("/courses", authMiddleware)
 	lessonsGroup := r.Group("/lessons", authMiddleware)
 	usersGroup := r.Group("/users", authMiddleware)
 
