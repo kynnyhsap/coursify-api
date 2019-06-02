@@ -4,6 +4,8 @@ import (
 	"coursify-api/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"net/url"
+	"strconv"
 )
 
 func RegisterUser(model models.IUserCreator) gin.HandlerFunc {
@@ -34,5 +36,25 @@ func GetSelf(model models.IUserGetter) gin.HandlerFunc {
 
 		user := model.Get(selfID)
 		c.JSON(http.StatusOK, user)
+	}
+}
+
+func ListUsers(model models.IUserLister) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
+		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
+		decodedSearchQuery, _ := url.QueryUnescape(c.DefaultQuery("search", ""))
+
+		list := model.GetList(limit, offset, decodedSearchQuery)
+		total := model.Count()
+
+		c.JSON(http.StatusOK, gin.H{
+			"meta": gin.H{
+				"limit":  limit,
+				"offset": offset,
+				"total":  total,
+			},
+			"users": list,
+		})
 	}
 }

@@ -52,6 +52,7 @@ func main() {
 	coursesGroup.PUT("/:id", routes.UpdateCourse(courseModel))
 
 	usersGroup.GET("/self/", routes.GetSelf(userModel))
+	usersGroup.GET("/", routes.ListUsers(userModel))
 
 	r.POST("/register/", routes.RegisterUser(userModel))
 	r.GET("/login/", authMiddleware, routes.LogInUser(userModel))

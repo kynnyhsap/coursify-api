@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"log"
 )
 
 type Course struct {
@@ -30,6 +31,8 @@ type ModelCourse struct {
 type ICourseLister interface {
 	GetList(limit, offset int, search string) []Course
 	GetListForUser(limit, offset int, userID int64, admin bool) []Course
+	CountForUser(userID int64, admin bool) int
+	Count() int
 }
 
 type ICourseGetter interface {
@@ -50,6 +53,12 @@ type ICourseUpdater interface {
 	ICourseGetter
 }
 
+const (
+	TypeAllCourses   = "all"
+	TypeMyCourses    = "my"
+	TypeAdminCourses = "admin"
+)
+
 func NewCourseModel(db *sql.DB) ModelCourse {
 	return ModelCourse{model{db}}
 }
@@ -57,7 +66,13 @@ func NewCourseModel(db *sql.DB) ModelCourse {
 func (m ModelCourse) GetList(limit, offset int, search string) []Course {
 	courses := make([]Course, 0)
 
-	rows, err := m.db.Query(`SELECT * FROM courses WHERE title LIKE ? LIMIT ? OFFSET ?`, "%"+search+"%", limit, offset)
+	rows, err := m.db.Query(`
+		SELECT
+		       *
+		FROM courses
+		WHERE title LIKE ?
+		LIMIT ? OFFSET ?
+	`, "%"+search+"%", limit, offset)
 	if err != nil {
 		return courses
 	}
@@ -131,10 +146,74 @@ func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool)
 	return courses
 }
 
+func (m ModelCourse) Count() int {
+	rows, err := m.db.Query(`SELECT COUNT(*) FROM courses`)
+
+	if err != nil {
+		log.Println(err)
+		return 0
+	}
+	defer rows.Close()
+
+	var count int
+
+	for rows.Next() {
+		if err := rows.Scan(&count); err != nil {
+			log.Println(err)
+			return 0
+		}
+	}
+
+	return count
+}
+
+func (m ModelCourse) CountForUser(userID int64, admin bool) int {
+	var rows *sql.Rows
+	var err error
+
+	if !admin {
+		rows, err = m.db.Query(`
+			SELECT
+			   COUNT(*)
+			FROM courses c JOIN students s ON c.id = s.course_id
+			WHERE s.user_id = ?
+		`, userID)
+	} else {
+		rows, err = m.db.Query(`
+			SELECT 
+				COUNT(*)
+			FROM courses
+			WHERE owner_id = ?
+		`, userID)
+	}
+
+	if err != nil {
+		log.Println(err)
+		return 0
+	}
+	defer rows.Close()
+
+	var count int
+
+	for rows.Next() {
+		if err := rows.Scan(&count); err != nil {
+			log.Println(err)
+			return 0
+		}
+	}
+
+	return count
+}
+
 func (m ModelCourse) Get(id int64) Course {
 	course := Course{}
 
-	row := m.db.QueryRow(`SELECT id, title, description, avatar, owner_id FROM courses WHERE id = ?`, id)
+	row := m.db.QueryRow(`
+		SELECT
+		   id, title, description, avatar, owner_id
+		FROM courses
+		WHERE id = ?
+	`, id)
 	err := row.Scan(&course.ID, &course.Title, &course.Description, &course.Avatar, &course.OwnerID)
 	if err != nil {
 		return Course{}
@@ -144,7 +223,11 @@ func (m ModelCourse) Get(id int64) Course {
 }
 
 func (m ModelCourse) Create(in CourseCreateInput) int64 {
-	stmt, err := m.db.Prepare(`INSERT INTO courses(title, description, avatar, owner_id) VALUE(?, ?, ?, ?)`)
+	stmt, err := m.db.Prepare(`
+		INSERT INTO courses(
+			title, description, avatar, owner_id
+		) VALUE(?, ?, ?, ?)
+	`)
 	if err != nil {
 		return 0
 	}
