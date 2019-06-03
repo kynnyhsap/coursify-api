@@ -14,7 +14,7 @@ func ListCourses(model models.ICourseLister) gin.HandlerFunc {
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 		listType := c.DefaultQuery("type", models.TypeAllCourses)
 
-		var list []models.Course
+		var list []models.CourseForList
 		var total int
 
 		if listType == models.TypeAllCourses {
@@ -50,7 +50,10 @@ func CreateCourse(model models.ICourseCreator) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		}
 
-		id := model.Create(inputData)
+		any, _ := c.Get(gin.AuthUserKey)
+		selfID, _ := any.(int64)
+
+		id := model.Create(inputData, selfID)
 		course := model.Get(id)
 
 		c.JSON(http.StatusCreated, course)

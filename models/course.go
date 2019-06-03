@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-type Course struct {
+type CourseForList struct {
 	ID          int    `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -13,10 +13,19 @@ type Course struct {
 	OwnerID     int    `json:"owner_id"`
 }
 
-type CourseCreateInput struct {
+type CourseDetail struct {
+	ID          int    `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Avatar      string `json:"avatar"`
 	OwnerID     int    `json:"owner_id"`
+	Mentors     []User `json:"mentors"`
+}
+
+type CourseCreateInput struct {
+	Avatar      string `json:"avatar"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
 type CourseUpdateInput struct {
@@ -29,18 +38,18 @@ type ModelCourse struct {
 }
 
 type ICourseLister interface {
-	GetList(limit, offset int, search string) []Course
-	GetListForUser(limit, offset int, userID int64, admin bool) []Course
+	GetList(limit, offset int, search string) []CourseForList
+	GetListForUser(limit, offset int, userID int64, admin bool) []CourseForList
 	CountForUser(userID int64, admin bool) int
 	Count() int
 }
 
 type ICourseGetter interface {
-	Get(id int64) Course
+	Get(id int64) CourseDetail
 }
 
 type ICourseCreator interface {
-	Create(in CourseCreateInput) int64
+	Create(in CourseCreateInput, ownerID int64) int64
 	ICourseGetter
 }
 
@@ -49,7 +58,7 @@ type ICourseDeleter interface {
 }
 
 type ICourseUpdater interface {
-	Update(in Course)
+	Update(in CourseDetail)
 	ICourseGetter
 }
 
@@ -63,8 +72,8 @@ func NewCourseModel(db *sql.DB) ModelCourse {
 	return ModelCourse{model{db}}
 }
 
-func (m ModelCourse) GetList(limit, offset int, search string) []Course {
-	courses := make([]Course, 0)
+func (m ModelCourse) GetList(limit, offset int, search string) []CourseForList {
+	courses := make([]CourseForList, 0)
 
 	rows, err := m.db.Query(`
 		SELECT
@@ -79,7 +88,7 @@ func (m ModelCourse) GetList(limit, offset int, search string) []Course {
 	defer rows.Close()
 
 	for rows.Next() {
-		var course Course
+		var course CourseForList
 
 		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.OwnerID, &course.Avatar)
 		if err != nil {
@@ -97,8 +106,8 @@ func (m ModelCourse) GetList(limit, offset int, search string) []Course {
 	return courses
 }
 
-func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool) []Course {
-	courses := make([]Course, 0)
+func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool) []CourseForList {
+	courses := make([]CourseForList, 0)
 
 	var rows *sql.Rows
 	var err error
@@ -129,7 +138,7 @@ func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool)
 	defer rows.Close()
 
 	for rows.Next() {
-		var course Course
+		var course CourseForList
 
 		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.OwnerID, &course.Avatar)
 		if err != nil {
@@ -205,8 +214,42 @@ func (m ModelCourse) CountForUser(userID int64, admin bool) int {
 	return count
 }
 
-func (m ModelCourse) Get(id int64) Course {
-	course := Course{}
+func (m ModelCourse) GetMentorsList(courseID int64) []User {
+	mentors := make([]User, 0)
+
+	rows, err := m.db.Query(`
+		SELECT
+			u.id, u.user_name, u.full_name, u.avatar, u.about
+		FROM users u
+		JOIN mentors m on u.id = m.user_id
+		WHERE m.course_id = ?
+	`, courseID)
+	if err != nil {
+		return mentors
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var mentor User
+
+		err = rows.Scan(&mentor.ID, &mentor.Name, &mentor.FullName, &mentor.Avatar, &mentor.About)
+		if err != nil {
+			//
+			return mentors
+		}
+
+		mentors = append(mentors, mentor)
+	}
+
+	if err = rows.Err(); err != nil {
+		// log error
+	}
+
+	return mentors
+}
+
+func (m ModelCourse) Get(id int64) CourseDetail {
+	course := CourseDetail{}
 
 	row := m.db.QueryRow(`
 		SELECT
@@ -216,13 +259,15 @@ func (m ModelCourse) Get(id int64) Course {
 	`, id)
 	err := row.Scan(&course.ID, &course.Title, &course.Description, &course.Avatar, &course.OwnerID)
 	if err != nil {
-		return Course{}
+		return CourseDetail{}
 	}
+
+	course.Mentors = m.GetMentorsList(id)
 
 	return course
 }
 
-func (m ModelCourse) Create(in CourseCreateInput) int64 {
+func (m ModelCourse) Create(in CourseCreateInput, ownerID int64) int64 {
 	stmt, err := m.db.Prepare(`
 		INSERT INTO courses(
 			title, description, avatar, owner_id
@@ -232,7 +277,7 @@ func (m ModelCourse) Create(in CourseCreateInput) int64 {
 		return 0
 	}
 
-	res, err := stmt.Exec(in.Title, in.Description, []byte{}, in.OwnerID)
+	res, err := stmt.Exec(in.Title, in.Description, in.Avatar, ownerID)
 	if err != nil {
 		return 0
 	}
@@ -252,7 +297,7 @@ func (m ModelCourse) Delete(id int64) {
 	}
 }
 
-func (m ModelCourse) Update(in Course) {
+func (m ModelCourse) Update(in CourseDetail) {
 	stmt, err := m.db.Prepare(`
 		UPDATE courses SET
 			title = ?,
