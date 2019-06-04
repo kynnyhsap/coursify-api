@@ -40,8 +40,8 @@ type ModelCourse struct {
 }
 
 type ICourseLister interface {
-	GetList(limit, offset int, search string) []CourseForList
-	GetListForUser(limit, offset int, userID int64, admin bool) []CourseForList
+	GetList(limit, offset int, search string) []CourseDetail
+	GetListForUser(limit, offset int, userID int64, admin bool) []CourseDetail
 	CountForUser(userID int64, admin bool) int
 	Count() int
 }
@@ -74,8 +74,8 @@ func NewCourseModel(db *sql.DB) ModelCourse {
 	return ModelCourse{model{db}}
 }
 
-func (m ModelCourse) GetList(limit, offset int, search string) []CourseForList {
-	courses := make([]CourseForList, 0)
+func (m ModelCourse) GetList(limit, offset int, search string) []CourseDetail {
+	courses := make([]CourseDetail, 0)
 
 	rows, err := m.db.Query(`
 		SELECT
@@ -90,7 +90,7 @@ func (m ModelCourse) GetList(limit, offset int, search string) []CourseForList {
 	defer rows.Close()
 
 	for rows.Next() {
-		var course CourseForList
+		var course CourseDetail
 
 		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.OwnerID, &course.Avatar)
 		if err != nil {
@@ -98,6 +98,7 @@ func (m ModelCourse) GetList(limit, offset int, search string) []CourseForList {
 			return courses
 		}
 
+		course.Mentors = m.GetMentorsList(course.ID)
 		course.StudentsCount = m.CountStudents(course.ID)
 		courses = append(courses, course)
 	}
@@ -109,8 +110,8 @@ func (m ModelCourse) GetList(limit, offset int, search string) []CourseForList {
 	return courses
 }
 
-func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool) []CourseForList {
-	courses := make([]CourseForList, 0)
+func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool) []CourseDetail {
+	courses := make([]CourseDetail, 0)
 
 	var rows *sql.Rows
 	var err error
@@ -141,12 +142,14 @@ func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool)
 	defer rows.Close()
 
 	for rows.Next() {
-		var course CourseForList
+		var course CourseDetail
 
 		err = rows.Scan(&course.ID, &course.Title, &course.Description, &course.OwnerID, &course.Avatar)
 		if err != nil {
 			return courses
 		}
+
+		course.Mentors = m.GetMentorsList(course.ID)
 		course.StudentsCount = m.CountStudents(course.ID)
 		courses = append(courses, course)
 	}

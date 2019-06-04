@@ -14,7 +14,7 @@ func ListCourses(model models.ICourseLister) gin.HandlerFunc {
 		offset, _ := strconv.Atoi(c.DefaultQuery("offset", "0"))
 		listType := c.DefaultQuery("type", models.TypeAllCourses)
 
-		var list []models.CourseForList
+		var list []models.CourseDetail
 		var total int
 
 		if listType == models.TypeAllCourses {
