@@ -16,6 +16,10 @@ func RegisterUser(model models.IUserCreator) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
 		}
 
+		if free := model.IsLoginFree(inputData.UserName); !free {
+			c.String(http.StatusConflict, "User with login %s already exists", inputData.UserName)
+		}
+
 		id := model.Create(inputData)
 		user := model.Get(id)
 

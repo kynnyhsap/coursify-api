@@ -42,6 +42,7 @@ type IUserLister interface {
 
 type IUserCreator interface {
 	Create(in UserCreateInput) int64
+	IsLoginFree(login string) bool
 	IUserGetter
 }
 
@@ -156,6 +157,20 @@ func (m ModelUser) Count() int {
 	}
 
 	return count
+}
+
+func (m ModelUser) IsLoginFree(login string) bool {
+	var id int
+
+	row := m.db.QueryRow(`SELECT id FROM users WHERE user_name = ? `, login)
+
+	err := row.Scan(&id)
+
+	if err != nil {
+		return true
+	}
+
+	return id == 0
 }
 
 func NewUserModel(db *sql.DB) ModelUser {
