@@ -6,20 +6,22 @@ import (
 )
 
 type CourseForList struct {
-	ID          int    `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Avatar      string `json:"avatar"`
-	OwnerID     int    `json:"owner_id"`
+	ID            int64  `json:"id"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Avatar        string `json:"avatar"`
+	StudentsCount int    `json:"students_count"`
+	OwnerID       int    `json:"owner_id"`
 }
 
 type CourseDetail struct {
-	ID          int    `json:"id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Avatar      string `json:"avatar"`
-	OwnerID     int    `json:"owner_id"`
-	Mentors     []User `json:"mentors"`
+	ID            int64  `json:"id"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Avatar        string `json:"avatar"`
+	StudentsCount int    `json:"students_count"`
+	OwnerID       int    `json:"owner_id"`
+	Mentors       []User `json:"mentors"`
 }
 
 type CourseCreateInput struct {
@@ -96,6 +98,7 @@ func (m ModelCourse) GetList(limit, offset int, search string) []CourseForList {
 			return courses
 		}
 
+		course.StudentsCount = m.CountStudents(course.ID)
 		courses = append(courses, course)
 	}
 
@@ -144,7 +147,7 @@ func (m ModelCourse) GetListForUser(limit, offset int, userID int64, admin bool)
 		if err != nil {
 			return courses
 		}
-
+		course.StudentsCount = m.CountStudents(course.ID)
 		courses = append(courses, course)
 	}
 
@@ -214,6 +217,27 @@ func (m ModelCourse) CountForUser(userID int64, admin bool) int {
 	return count
 }
 
+func (m ModelCourse) CountStudents(courseID int64) int {
+	rows, err := m.db.Query(`SELECT COUNT(*) FROM students WHERE course_id = ?`, courseID)
+
+	if err != nil {
+		log.Println(err)
+		return 0
+	}
+	defer rows.Close()
+
+	var count int
+
+	for rows.Next() {
+		if err := rows.Scan(&count); err != nil {
+			log.Println(err)
+			return 0
+		}
+	}
+
+	return count
+}
+
 func (m ModelCourse) GetMentorsList(courseID int64) []User {
 	mentors := make([]User, 0)
 
@@ -263,6 +287,7 @@ func (m ModelCourse) Get(id int64) CourseDetail {
 	}
 
 	course.Mentors = m.GetMentorsList(id)
+	course.StudentsCount = m.CountStudents(id)
 
 	return course
 }
