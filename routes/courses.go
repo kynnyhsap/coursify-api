@@ -17,16 +17,16 @@ func ListCourses(model models.ICourseLister) gin.HandlerFunc {
 		var list []models.CourseDetail
 		var total int
 
+		any, _ := c.Get(gin.AuthUserKey)
+		selfID, _ := any.(int64)
+
 		if listType == models.TypeAllCourses {
 			searchQuery := c.DefaultQuery("search", "")
 			decodedSearchQuery, _ := url.QueryUnescape(searchQuery)
 
-			list = model.GetList(limit, offset, decodedSearchQuery)
+			list = model.GetList(limit, offset, selfID, decodedSearchQuery)
 			total = model.Count()
 		} else {
-			any, _ := c.Get(gin.AuthUserKey)
-			selfID, _ := any.(int64)
-
 			list = model.GetListForUser(limit, offset, selfID, listType == models.TypeAdminCourses)
 			total = model.CountForUser(selfID, listType == models.TypeAdminCourses)
 		}
@@ -39,6 +39,41 @@ func ListCourses(model models.ICourseLister) gin.HandlerFunc {
 			},
 			"courses": list,
 		})
+	}
+}
+
+
+func EnterCourse(model models.ICourseGetter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		}
+
+		any, _ := c.Get(gin.AuthUserKey)
+		selfID, _ := any.(int64)
+
+		model.Enter(id, selfID)
+
+		c.String(http.StatusOK, "")
+	}
+}
+
+func LeaveCourse(model models.ICourseGetter) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		}
+
+		any, _ := c.Get(gin.AuthUserKey)
+		selfID, _ := any.(int64)
+
+		model.Leave(id, selfID)
+
+		c.String(http.StatusOK, "")
 	}
 }
 
