@@ -76,27 +76,23 @@ func NewCourseModel(db *sql.DB) ModelCourse {
 }
 
 func (m ModelCourse) Entered(courseID int64, userID int64) bool {
-	rows, err := m.db.Query(`
+	row := m.db.QueryRow(`
 		SELECT
        		progress
 		FROM students
 		WHERE course_id = ? AND user_id = ?
 	`, courseID, userID)
 
+	var progress float64 = -1.0
+	err := row.Scan(&progress)
 	if err != nil {
 		log.Println(err)
 		return false
 	}
-	defer rows.Close()
 
-	var progress float64
-	for rows.Next() {
-		if err := rows.Scan(&progress); err != nil {
-			log.Println(err)
-			return false
-		}
+	if progress < 0 {
+		return false
 	}
-
 	return true
 }
 
